@@ -16,22 +16,6 @@ class HMMOptimalPath:
         self.text = text
         self.alphabet = alphabet
 
-    def update_state(self):
-        select = rn.random()
-        probs = [0]
-        for i, p in enumerate(self.state_dict[self.current_state]):
-            if p + probs[i] > select:
-                self.current_state = i+1
-                break
-            probs.append(p+probs[i])
-
-    def emit(self):
-        select = rn.random()
-        probs = [0]
-        for i, p in enumerate(self.emissions_dict[self.current_state]):
-            if p + probs[i] > select:
-                return i+1
-            probs.append(p+probs[i])
 
     def get_optimal_path(self):
         for i, c in enumerate(self.text):
