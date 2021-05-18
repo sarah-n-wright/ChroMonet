@@ -1,8 +1,12 @@
 import random as rn
 import pandas as pd
 from os import path
+import re as re
+import numpy as np
 
-# TODO save structure for genomes after deciding on data structures
+# TODO Modify data table for ref data
+# TODO Update methods to work with new ref data frame
+# TODO Save
 
 
 def make_fake_frequencies(ancestries, positions, seed=0, save=False):
@@ -14,29 +18,76 @@ def make_fake_frequencies(ancestries, positions, seed=0, save=False):
     :param seed: Random seen if wanted. Default=no random seed
     :param save: Should data be saved to file? Default=False. If True data will be saved as
         Data/simData_N[#ancestries]_P[#positions]_seed[seed_value].tsv
-    :return: Data frame with position, ancestry, alleles and frequency. Each row is a single ancestry:position pair
-    with both alleles
+    :return: Data frame with position and frequencies for each nucleotide for each population
     """
     if seed != 0:
         rn.seed(seed)
     if type(ancestries) == int:
-        ancestries = range(ancestries)
+        ancestries = [int(x) for x in range(ancestries)]
     if type(positions) == int:
         positions = range(positions)
     nts = ['A', 'G', 'C', 'T']
-    data = pd.DataFrame({"POS": [], "POP": [], "REF": [], "ALT": [], "ref_freq": []})
+    data = pd.DataFrame({"POS": [], "POP": [], "A": [], "C": [], "G": [], "T": []})
     for pos in positions:
         alleles = rn.sample(nts, 2)  # randomly select the two alleles
+        zero_alleles = [x for x in nts if x not in alleles]
         for pop in ancestries:
             freq = rn.random()  # randomly set the ref allele frequency
-            data = data.append(pd.Series({"POS": pos,  "POP": pop, "REF": alleles[0],
-                                          "ALT": alleles[1], "ref_freq": round(freq, 4)}),
+            data = data.append(pd.Series({"POS": int(pos), "POP": int(pop), alleles[0]: round(freq, 4),
+                                          alleles[1]: round(1-freq, 4), zero_alleles[0]: 0,
+                                          zero_alleles[1]: 0}),
                                ignore_index=True)
-    data["alt_freq"] = 1 - data.ref_freq  # calculate the alt frequency
+    data["POS"] = data["POS"].astype(int)
+    if data["POP"].dtype == float:
+        data["POP"] = data["POP"].astype(int)
+    data = freq_one_row_per_position(data)
     if save:
+
         data.to_csv("Data/simData_N"+str(len(ancestries))+"_P"+str(len(positions))+"_seed" + str(seed)+".tsv", sep="\t",
                     index=False)
     return data
+
+
+def freq_one_row_per_position(data):
+    """
+    Reformats ancestry representation of frequency data to one row per position
+    :param data: frequency data with 6 columns : POS, POP, A, C, G, T
+    :return: frequency data with one row for each position
+    """
+    unique_pops = data.POP.unique()
+    pop_data = []
+    for pop in unique_pops:
+        pop_data.append(data.loc[(data.POP == pop), ("POS", "A", "C", "G", "T")])
+    out_data = pop_data[0]
+    for i in range(1, len(pop_data)):
+        out_data = out_data.merge(pop_data[i], on="POS", suffixes=[unique_pops[i-1], unique_pops[i]])
+    return out_data
+
+
+def freq_collapse_pop_to_column(data, pop_is_suffix=True):
+    """
+    Reformats population representation of frequency data to one column for each nucleotide
+    :param data: Frequency table with one row per position
+    :param pop_is_suffix: Nucleotide column names are e.g. A_EUR. If false, columns are e.g EUR_A
+    :return: Data with populations collapsed into a column, with one column per nucleotide
+    """
+    if pop_is_suffix:
+        pops = set([re.sub("^[ACTG]", "", col) for col in data.columns[1:]])
+    else:
+        pops = set([re.sub("[ACTG]$", "", col) for col in data.columns[1:]])
+    out_list = []
+    for pop in pops:
+        cols = [col for col in data.columns if re.search(pop, col)]
+        d_pop = data.filter(items=["POS"]+cols)
+        cols = [re.sub(pop, "", col) for col in cols]
+        d_pop.columns = ["POS"] + cols
+        d_pop["POP"] = pop
+        out_list.append(d_pop)
+    out_data = out_list[0]
+    for i in range(1, len(pops)):
+        out_data = pd.concat([out_data, out_list[i]])
+    out_data.sort_values(by=["POS", "POP"], inplace=True)
+    return out_data
 
 
 def load_fake_frequencies(num_ancestries, num_positions, seed_num=0):
@@ -63,11 +114,25 @@ def simulate_chrom(ancestry, data):
     :param data: Simulated data set to use for simulation
     :return: A string representing a single chromosome for an individual of input ancestry
     """
+    if data.shape[1] != 6:
+        data = freq_collapse_pop_to_column(data)
     data_sub = data.loc[(data.POP == ancestry), :]
-    vals = data_sub.apply(lambda x: x.iloc[2+sum([rn.random() > x["ref_freq"]])], axis=1)
+    vals = data_sub.apply(lambda x: select_allele(x), axis=1)
     data_sub = data_sub.assign(select=vals)
     G = "".join(data_sub.select)
     return G
+
+
+def select_allele(row):
+    """
+    Subroutine of simulate_chrom() to select an allele based on frequencies.
+    :param row: row of data frame
+    :return: A single selected allele
+    """
+    probs = np.array([row["A"], row["C"], row["G"], row["T"]])
+    cumulative_probs = np.cumsum(probs)
+    allele = ["A", "C", "G", "T"][np.argmax(cumulative_probs > rn.random())]
+    return allele
 
 
 def simulate_random_genomes(ancestry_pairs, data, N=1):
@@ -80,6 +145,8 @@ def simulate_random_genomes(ancestry_pairs, data, N=1):
         keys = "[ancestry1][ancestry2].[repeat]"
         values = list of length len(Genome) of diploid genotypes e.g. ["AA", "TA", "GG" .....]
     """
+    if data.shape[1] != 6:
+        data = freq_collapse_pop_to_column(data)
     genomes = {}
     for n in range(N):
         for pair in ancestry_pairs:
@@ -100,12 +167,15 @@ def simulate_perfect_genomes(ancestries, data):
         keys = [ancestry1, ancestry2]
         values = list of length len(Genome) of diploid genotypes e.g. ["AA", "TA", "GG" .....]
     """
+
     if type(data) == str:
         data = pd.read_csv(data, sep="\t", index=None)
+    if data.shape[1] != 6:
+        data = freq_collapse_pop_to_column(data)
     G = []
     for indiv in ancestries:
         data_sub = data.loc[data.POP == indiv]
-        vals = data_sub.apply(lambda x: x.iloc[2+sum([x.ref_freq < x.alt_freq])], axis=1)
+        vals = data_sub.filter(items=["A", "C", "G", "T"]).idxmax(axis=1)
         data_sub = data_sub.assign(select=vals)
         G.append("".join(data_sub.select.values))
     diploid = {}
@@ -113,4 +183,5 @@ def simulate_perfect_genomes(ancestries, data):
         for j, indiv2 in enumerate(ancestries):
             diploid[(indiv, indiv2)] = [G[i][k] + G[j][k] for k in range(len(G[i]))]
     return diploid
+
 
