@@ -39,7 +39,9 @@ def make_fake_frequencies(ancestries, positions, seed=0, save=False):
     data["POS"] = data["POS"].astype(int)
     if data["POP"].dtype == float:
         data["POP"] = data["POP"].astype(int)
+    data = freq_one_row_per_position(data)
     if save:
+
         data.to_csv("Data/simData_N"+str(len(ancestries))+"_P"+str(len(positions))+"_seed" + str(seed)+".tsv", sep="\t",
                     index=False)
     return data
