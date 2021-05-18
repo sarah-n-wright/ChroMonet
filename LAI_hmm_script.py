@@ -1,32 +1,68 @@
 import random as rn
 import numpy as np
 
-### Questions/considerations:
-    # - How should we store and utilize emissions? I think we'll need to change the DS
-    #   maybe store list of ref, alt, and MAFs for each pop and then calculate these as needed?
-    # - If we make text a sequence of SNPs, we will also need to keep track of position of all
-    #   the SNPs, because the SNPs for an individual may not match those in our emissions df perfectly
-    #   (so we'll need a script to parse these in somehow as well)
-    # - Yeah current text based approach also won't work bc relies on seq of nt, and each
-    #   char is one state (but we'll have 2 nt pairs)
 
 class HMMOptimalPathLAI:
-    def __init__(self, states, emissions, SNPseq, alphabet):
+    def __init__(self, states, emissions, emission_df, SNPseq, alphabet, PopA, PopB):
+        """
+        - States = ["AA", "AB", "BA", "BB"] --> state_dict = {0:"AA",1:"AB",2:"BA",3:"BB"}
+        - Emissions = we will calculate these as we go based on the emission_df (which contains
+          the prob of each nt for popA and popB)
+        - Alphabet = ["AA","AC","AG","AT","CA","CC","CG","CT","GA","GC","GG","GT","TA","TC","TG","TT"]
+        -
+        """
+        #read in states, make a pop code dictionary, and construct an indexing state_dict {index:state}
         self.n_states = len(states)
-        self.n_emissions = len(emissions) ###
+        self.pop_codes = {'A':PopA, 'B':PopB}
         self.state_dict = {}
-        self.emissions_dict = {} ###
         for s in range(self.n_states):
             self.state_dict[s] = states[s]
-            self.emissions_dict[s] = emissions[s] ###
 
-        self.current_state = rn.randint(0, self.n_states-1) ###
+        #read in emission options and construct an indexing emission_dict {index:symbol}
+        ### NOTE: may not need the emissions_dict, considering we have the alphabet list ########
+        self.n_emissions = len(emissions)  #########
+        self.emissions_dict = {}
+        self.emissions_df = emission_df
+        for s in range(self.n_emissions):
+            self.emissions_dict[s] = emissions[s]
+
+        #pick a random starting state (0,1,2,3) and initialize the matrices for the Viterbi algorithm
+        self.current_state = rn.randint(0, self.n_states-1)
         self.optimal_matrix = np.zeros((self.n_states, len(SNPseq)))
         self.backtrack = np.zeros((self.n_states, len(SNPseq)))
+
+        ### NOTE: still discussing how to represent this information ########
+        #read in the SNPseq into a list
         self.text = SNPseq
-        self.alphabet = alphabet
+        self.alphabet = emissions
 
 
+    ### TO DO: test that this works with easy data!
+    def get_emissions_matrix(self,position):
+        """
+        This function takes a SNP position (on chr 21), and uses the emission_df
+        to output a 4x16 emission probability matrix (rows = 4 ancestry pop combos,
+        cols = 16 genotype combos). The genotype combos are ordered lexicographically:
+        ["AA","AC","AG","AT","CA","CC","CG","CT","GA","GC","GG","GT","TA","TC","TG","TT"].
+        """
+        #first grab the index of position in emission_df
+        ind = list(self.emission_df.loc[:,"POS"]).index(position) ######## might change this
+
+        #now go through the columns with pop_nt freqs and make the emissions matrix
+        emissions_mat = np.zeros((4,16),dtype=float)
+        for i in range(self.n_states):
+            pop1 = self.pop_codes[self.states[i][0]]
+            pop2 = self.pop_codes[self.states[i][1]]
+            for j in range(len(self.alphabet)):
+                nt1 = self.alphabet[j][0]
+                nt2 = self.alphabet[j][1]
+                prob1 = self.emission_df.loc[ind,pop1+"_"+nt1]
+                prob2 = self.emission_df.loc[ind,pop2+"_"+nt2]
+                emissions_mat[i,j] = prob1*prob2
+
+        return emissions_mat
+
+    ### TO DO: update this for new DSs
     def get_optimal_path(self):
         for i, c in enumerate(self.text): ###
             idx = self.alphabet.index(c)
@@ -45,6 +81,7 @@ class HMMOptimalPathLAI:
                     self.optimal_matrix[j, i] = max_prob
                     self.backtrack[j, i] = back
 
+    ### TO DO: update this for new DSs
     def reconstruct_path(self, state_names):
         end_values = [self.optimal_matrix[v, len(self.text) - 1] for v in range(self.n_states)]
         max_prob = max(end_values)
@@ -76,16 +113,3 @@ def parse_hmm_data(data):
     for j in range(9+n_states, 9+n_states*2):
         emit_probs.append([float(x) for x in data[j].split("\t")[1:]])
     return state_probs, emit_probs, text, alphabet, state_names
-
-
-
-# if __name__ == '__main__':
-#     text = "xyxzzxyxyy"
-#     alphabet = ['x', 'y', 'z']
-#     st = [[0.641, 0.359], [0.729, 0.271]]
-#     em = [[0.177, 0.691, 0.192], [0.097, 0.42, 0.483]]
-#
-#     hmm = HMMOptimalPath(st, em, text, alphabet)
-#     hmm.get_optimal_path()
-#     path = hmm.reconstruct_path(["A", "B"])
-#     assert "".join(path) == "AAABBAAAAA"
