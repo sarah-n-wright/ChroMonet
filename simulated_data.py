@@ -2,6 +2,7 @@ import random as rn
 import pandas as pd
 from os import path
 import re as re
+import numpy as np
 
 # TODO Modify data table for ref data
 # TODO Update methods to work with new ref data frame
@@ -116,10 +117,22 @@ def simulate_chrom(ancestry, data):
     if data.shape[1] != 6:
         data = freq_collapse_pop_to_column(data)
     data_sub = data.loc[(data.POP == ancestry), :]
-    vals = data_sub.apply(lambda x: x.iloc[2+sum([rn.random() > x["ref_freq"]])], axis=1)
+    vals = data_sub.apply(lambda x: select_allele(x), axis=1)
     data_sub = data_sub.assign(select=vals)
     G = "".join(data_sub.select)
     return G
+
+
+def select_allele(row):
+    """
+    Subroutine of simulate_chrom() to select an allele based on frequencies.
+    :param row: row of data frame
+    :return: A single selected allele
+    """
+    probs = np.array([row["A"], row["C"], row["G"], row["T"]])
+    cumulative_probs = np.cumsum(probs)
+    allele = ["A", "C", "G", "T"][np.argmax(cumulative_probs > rn.random())]
+    return allele
 
 
 def simulate_random_genomes(ancestry_pairs, data, N=1):
@@ -162,7 +175,7 @@ def simulate_perfect_genomes(ancestries, data):
     G = []
     for indiv in ancestries:
         data_sub = data.loc[data.POP == indiv]
-        vals = data_sub.apply(lambda x: x.iloc[2+sum([x.ref_freq < x.alt_freq])], axis=1)
+        vals = data_sub.filter(items=["A", "C", "G", "T"]).idxmax(axis=1)
         data_sub = data_sub.assign(select=vals)
         G.append("".join(data_sub.select.values))
     diploid = {}
@@ -172,8 +185,3 @@ def simulate_perfect_genomes(ancestries, data):
     return diploid
 
 
-if __name__ == "__main__":
-    data = make_fake_frequencies(2, 5, seed=0, save=False)
-    x = cast_population_freq_table(data)
-    d = melt_population_freq_table(x)
-    x.head()
