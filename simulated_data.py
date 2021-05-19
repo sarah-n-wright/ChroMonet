@@ -4,10 +4,6 @@ from os import path
 import re as re
 import numpy as np
 
-# TODO Modify data table for ref data
-# TODO Update methods to work with new ref data frame
-# TODO Save
-
 
 def make_fake_frequencies(ancestries, positions, seed=0, save=False):
     """
@@ -135,30 +131,28 @@ def select_allele(row):
     return allele
 
 
-def simulate_random_genomes(ancestry_pairs, data, N=1):
+def simulate_random_genome(ancestry_pair, data, save=False):
     """
-    Simulate a set of genomes for given ancestries based on allele frequencies
-    :param ancestry_pairs: List lists/tuples of ancestry pairs
-    :param data: Simulated datasets
-    :param N: Number of repeats
-    :return: N x len(ancestry_pairs) diploid genomes as a dictionary where:
-        keys = "[ancestry1][ancestry2].[repeat]"
-        values = list of length len(Genome) of diploid genotypes e.g. ["AA", "TA", "GG" .....]
+
+    :param ancestry_pair:
+    :param data:
+    :param save:
+    :return:
     """
     if data.shape[1] != 6:
         data = freq_collapse_pop_to_column(data)
-    genomes = {}
-    for n in range(N):
-        for pair in ancestry_pairs:
-            g1 = simulate_chrom(pair[0], data)
-            g2 = simulate_chrom(pair[1], data)
-            idd = "".join([str(p) for p in pair] + [".", str(n)])
-            genos = [g1[i] + g2[i] for i in range(len(g1))]
-            genomes[idd] = genos
-    return genomes
+    g1 = simulate_chrom(ancestry_pair[0], data)
+    g2 = simulate_chrom(ancestry_pair[1], data)
+    G = [g1[i]+g2[i] for i in range(len(g1))]
+    genome = genome_to_table(ancestry_pair, G, data)
+    if save:
+        n_pos = data.POS.nunique()
+        genome.to_csv("Data/simGenome_"+str(n_pos)+"_"+str(ancestry_pair[0])+"_"+str(ancestry_pair[1])+".tsv", sep="\t",
+                      index=None)
+    return G
 
 
-def simulate_perfect_genomes(ancestries, data):
+def simulate_perfect_genomes(ancestries, data, save=False):
     """
     Simulate genomes where the most common allele for a given ancestry is always chosen
     :param ancestries: List of all available ancestries, all combinations will be made by the function
@@ -177,11 +171,90 @@ def simulate_perfect_genomes(ancestries, data):
         data_sub = data.loc[data.POP == indiv]
         vals = data_sub.filter(items=["A", "C", "G", "T"]).idxmax(axis=1)
         data_sub = data_sub.assign(select=vals)
-        G.append("".join(data_sub.select.values))
+        G.append(data_sub.select.values)
     diploid = {}
     for i, indiv in enumerate(ancestries):
         for j, indiv2 in enumerate(ancestries):
             diploid[(indiv, indiv2)] = [G[i][k] + G[j][k] for k in range(len(G[i]))]
+
+    if save:
+        save_perfect_genomes(diploid, data)
     return diploid
 
 
+def genome_to_table(ancestry_pair, genome, data):
+    """
+
+    :param ancestry_pair:
+    :param genome:
+    :param data:
+    :return:
+    """
+    genos = genome
+    c1 = [x[0] for x in genos]
+    c2 = [x[1] for x in genos]
+    genome_table = pd.DataFrame({"POS": data.POS.unique(), "A1": c1, "A2": c2, "POP1": ancestry_pair[0],
+                                 "POP2": ancestry_pair[1]})
+    return genome_table
+
+
+def table_to_genome(table):
+    """
+
+    :param table:
+    :return:
+    """
+    if type(table) == str:
+        table = pd.read_csv(table, sep = "\t", index_col=False)
+    c1 = table["A1"]
+    c2 = table["A2"]
+    G = [c1[i] + c2[i] for i in range(len(c1))]
+    return G
+
+
+def save_perfect_genomes(all_genomes, data):
+    """
+
+    :param all_genomes:
+    :param data:
+    :return:
+    """
+    for pair in all_genomes.keys():
+        tab = genome_to_table(pair, all_genomes[pair], data)
+        n_pos = tab.POS.nunique()
+        tab.to_csv("Data/simGenome_perfect_"+str(n_pos)+"_"+str(pair[0])+"_"+str(pair[1])+".tsv", sep="\t",
+                   index=None)
+
+
+def simulate_admixed_chrom(ancestry_pair, data, n_recomb):
+    """
+    Performs specified number of recombinations at randomly selected locations from two single ancestry chromosomes
+    :param ancestry_pair: Pair of ancestries to admix
+    :param data: Frequency data
+    :param n_recomb: Number of recombination events
+    :return: A string representing a single admixed chromosome (selected randomly from the two)
+    """
+    c1 = simulate_chrom(ancestry_pair[0])
+    c2 = simulate_chrom(ancestry_pair[1])
+    n_pos = data.POS.nunique()
+    crossovers = [rn.randint(0, n_pos-1) for _ in range(n_recomb)]
+    for cross in crossovers:
+        c1_pref = c1[:cross]
+        c1_suff = c1[cross:]
+        c2_pref = c2[:cross]
+        c2_suff = c2[cross:]
+        c1 = c1_pref + c2_suff
+        c2 = c2_pref + c1_suff
+    chroms = [c1, c2]
+    choice = rn.randint(0, 1)
+    return chroms[choice]
+
+
+if __name__ == "__main__":
+    data = make_fake_frequencies(["0", "1"], 100, 518, save=True)
+    perf = simulate_perfect_genomes(["0", "1"], data, save=True)
+    G = simulate_random_genome(["0", "0"], data, save=True)
+    G = simulate_random_genome(["0", "1"], data, save=True)
+    G = simulate_random_genome(["1", "0"], data, save=True)
+    G = simulate_random_genome(["1", "1"], data, save=True)
+    save_genome(G, data, "affga")
