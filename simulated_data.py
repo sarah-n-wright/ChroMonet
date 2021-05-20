@@ -4,6 +4,8 @@ from os import path
 import re as re
 import numpy as np
 
+# TODO make it possible to save simulated data outside of Git
+
 
 def make_fake_frequencies(ancestries, positions, seed=0, save=False):
     """
@@ -234,27 +236,64 @@ def simulate_admixed_chrom(ancestry_pair, data, n_recomb):
     :param n_recomb: Number of recombination events
     :return: A string representing a single admixed chromosome (selected randomly from the two)
     """
-    c1 = simulate_chrom(ancestry_pair[0])
-    c2 = simulate_chrom(ancestry_pair[1])
+    if data.shape[1] != 6:
+        data = freq_collapse_pop_to_column(data)
+    c1 = simulate_chrom(ancestry_pair[0], data)
+    pop1 = [ancestry_pair[0] for i in range(len(c1))]
+    c2 = simulate_chrom(ancestry_pair[1], data)
+    pop2 = [ancestry_pair[1] for i in range(len(c2))]
     n_pos = data.POS.nunique()
     crossovers = [rn.randint(0, n_pos-1) for _ in range(n_recomb)]
+    crossovers.sort()
     for cross in crossovers:
-        c1_pref = c1[:cross]
-        c1_suff = c1[cross:]
-        c2_pref = c2[:cross]
-        c2_suff = c2[cross:]
-        c1 = c1_pref + c2_suff
-        c2 = c2_pref + c1_suff
+        c1, c2 = crossover(c1, c2, cross)
+        pop1, pop2 = crossover(pop1, pop2, cross)
     chroms = [c1, c2]
+    pops = [pop1, pop2]
     choice = rn.randint(0, 1)
-    return chroms[choice]
+    return chroms[choice], pops[choice]
+
+
+def simulate_admixed_genome(ancestry_pair, data, n_recomb, sample_id="", save=False):
+    """
+    :param ancestry_pair: Names of the two ancestries to admix
+    :param data: Allele frequency table
+    :param n_recomb: Number of recombination events
+    :param sample_id: Optional suffix for save file
+    :param save: Should the generated genome be saved
+    :return: Genome in format ["AA", "TA", ....]
+    """
+    a1, pop1 = simulate_admixed_chrom(ancestry_pair, data, n_recomb)
+    a2, pop2 = simulate_admixed_chrom(ancestry_pair, data, n_recomb)
+    genome_table = pd.DataFrame({"POS": data.POS.unique(), "A1": list(a1), "A2": list(a2), "POP1": pop1,
+                                 "POP2": pop2})
+    if save:
+        filename = "Data/simAdmixedGenome_"+str(len(data))+"_"+"_".join(ancestry_pair)+"_Rx"+str(n_recomb)+"_"+sample_id+".tsv"
+        genome_table.to_csv(filename, index=False, sep="\t")
+    return table_to_genome(genome_table)
+
+
+def crossover(a, b, cross_pos):
+    """
+    Performs a suffix exchange between two objects of equal length of the suffix from index cross_pos to end
+    :param a: List or string to be crossed
+    :param b: List or string to be crossed
+    :param cross_pos: Position at which to perform crossover
+    :return: both chromosomes following crossover
+    """
+    a_pref = a[:cross_pos]
+    a_suff = a[cross_pos:]
+    b_pref = b[:cross_pos]
+    b_suff = b[cross_pos:]
+    a_out = a_pref + b_suff
+    b_out = b_pref + a_suff
+    return a_out, b_out
+
 
 
 if __name__ == "__main__":
-    data = make_fake_frequencies(["0", "1"], 100, 518, save=True)
-    perf = simulate_perfect_genomes(["0", "1"], data, save=True)
-    G = simulate_random_genome(["0", "0"], data, save=True)
-    G = simulate_random_genome(["0", "1"], data, save=True)
-    G = simulate_random_genome(["1", "0"], data, save=True)
-    G = simulate_random_genome(["1", "1"], data, save=True)
+    data = make_fake_frequencies(["0", "1"], 10, 520, save=False)
+    x, y = simulate_admixed_genome(["0", "1"], data, 2)
+
+    perf = simulate_perfect_genomes(["0", "1"], data, save=False)
     save_genome(G, data, "affga")
