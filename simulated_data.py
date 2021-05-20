@@ -135,11 +135,11 @@ def select_allele(row):
 
 def simulate_random_genome(ancestry_pair, data, save=False):
     """
-
-    :param ancestry_pair:
-    :param data:
-    :param save:
-    :return:
+    Creates a random genome from alelle frequencies where each chromosome is single ancestry.
+    :param ancestry_pair: The ancestries of the two chromosomes
+    :param data: Data to generate genome from
+    :param save: Should the genome table be saved
+    :return: list of genotype pairs
     """
     if data.shape[1] != 6:
         data = freq_collapse_pop_to_column(data)
@@ -150,7 +150,7 @@ def simulate_random_genome(ancestry_pair, data, save=False):
     if save:
         n_pos = data.POS.nunique()
         genome.to_csv("Data/simGenome_"+str(n_pos)+"_"+str(ancestry_pair[0])+"_"+str(ancestry_pair[1])+".tsv", sep="\t",
-                      index=None)
+                      index=False)
     return G
 
 
@@ -186,11 +186,11 @@ def simulate_perfect_genomes(ancestries, data, save=False):
 
 def genome_to_table(ancestry_pair, genome, data):
     """
-
-    :param ancestry_pair:
-    :param genome:
-    :param data:
-    :return:
+    Converts a list of genotypes to table format, assuming each chrom is single ancestry
+    :param ancestry_pair: ancestry of each chromosome
+    :param genome: genome to convert
+    :param data: data from which genome was generated
+    :return: table format of the genome
     """
     genos = genome
     c1 = [x[0] for x in genos]
@@ -202,9 +202,9 @@ def genome_to_table(ancestry_pair, genome, data):
 
 def table_to_genome(table):
     """
-
-    :param table:
-    :return:
+    Takes a table format (from saved genome and converts to list of genotypes
+    :param table: genome in save format
+    :return: list of genotypes
     """
     if type(table) == str:
         table = pd.read_csv(table, sep = "\t", index_col=False)
@@ -216,10 +216,10 @@ def table_to_genome(table):
 
 def save_perfect_genomes(all_genomes, data):
     """
-
-    :param all_genomes:
-    :param data:
-    :return:
+    Save the results of simulating perfect genomes
+    :param all_genomes: Set of perfect genomes
+    :param data: Data from which perfect genotypes were generated
+    :return: None, saves all genomes to file in table format
     """
     for pair in all_genomes.keys():
         tab = genome_to_table(pair, all_genomes[pair], data)
@@ -250,12 +250,14 @@ def simulate_admixed_chrom(ancestry_pair, data, n_recomb):
         pop1, pop2 = crossover(pop1, pop2, cross)
     chroms = [c1, c2]
     pops = [pop1, pop2]
+    # randomly select a chromosome
     choice = rn.randint(0, 1)
     return chroms[choice], pops[choice]
 
 
-def simulate_admixed_genome(ancestry_pair, data, n_recomb, sample_id="", save=False):
+def random_admixed_genome(ancestry_pair, data, n_recomb, sample_id="", save=False):
     """
+    Creates two independent chromosomes produced from n_recomb random crossovers of simulated single ancestry chromosomes.
     :param ancestry_pair: Names of the two ancestries to admix
     :param data: Allele frequency table
     :param n_recomb: Number of recombination events
@@ -290,10 +292,16 @@ def crossover(a, b, cross_pos):
     return a_out, b_out
 
 
-
 if __name__ == "__main__":
-    data = make_fake_frequencies(["0", "1"], 10, 520, save=False)
-    x, y = simulate_admixed_genome(["0", "1"], data, 2)
-
+    # data = make_fake_frequencies(["0", "1"], 10, 520, save=False)
+    data = load_fake_frequencies(2, 100, 518)
+    x = random_admixed_genome(["0", "1"], data, 1, sample_id="0", save=True)
+    x = random_admixed_genome(["0", "1"], data, 1, sample_id="1", save=True)
+    x = random_admixed_genome(["0", "1"], data, 2, sample_id="0", save=True)
+    x = random_admixed_genome(["0", "1"], data, 2, sample_id="1", save=True)
+    x = random_admixed_genome(["0", "1"], data, 4, sample_id="0", save=True)
+    x = random_admixed_genome(["0", "1"], data, 4, sample_id="1", save=True)
+    x = random_admixed_genome(["0", "1"], data, 5, sample_id="0", save=True)
+    x = random_admixed_genome(["0", "1"], data, 5, sample_id="1", save=True)
     perf = simulate_perfect_genomes(["0", "1"], data, save=False)
-    save_genome(G, data, "affga")
+    #save_genome(G, data, "affga")
