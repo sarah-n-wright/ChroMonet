@@ -1,52 +1,81 @@
 import random as rn
 import numpy as np
 
+### TO DO:
+    # - Refresh on genome representation, change indexing methods as necessary
+    #   (just cut down emission_df and then use the index in SNPseq?)
+    # - Adapt optimal path and reconstruct path for any changes and test!
+
+
+def HammingDist(str1,str2):
+    dist = 0
+    for i in range(len(str1)):
+        if str1[i] != str2[i]:
+            dist += 1
+    return dist
+
+
 
 class HMMOptimalPathLAI:
-    def __init__(self, states, emissions, emission_df, SNPseq, alphabet, PopA, PopB):
+    def __init__(self, PopA, PopB, emission_df, recombination_freq, SNPseq):
         """
-        - States = ["AA", "AB", "BA", "BB"] --> state_dict = {0:"AA",1:"AB",2:"BA",3:"BB"}
+        - States = ["AA", "AB", "BA", "BB"] --> states = {0:"AA",1:"AB",2:"BA",3:"BB"}
         - Emissions = we will calculate these as we go based on the emission_df (which contains
           the prob of each nt for popA and popB)
         - Alphabet = ["AA","AC","AG","AT","CA","CC","CG","CT","GA","GC","GG","GT","TA","TC","TG","TT"]
-        -
+        - Transitions = will build matrix using an input recombination frequency in separate function
         """
         #read in states, make a pop code dictionary, and construct an indexing state_dict {index:state}
-        self.n_states = len(states)
+        self.states = {0: "AA", 1: "AB", 2:"BA", 3:"BB"}
+        self.n_states = len(self.states.keys())
         self.pop_codes = {'A':PopA, 'B':PopB}
-        self.state_dict = {}
-        for s in range(self.n_states):
-            self.state_dict[s] = states[s]
 
-        #read in emission options and construct an indexing emission_dict {index:symbol}
-        ### NOTE: may not need the emissions_dict, considering we have the alphabet list ########
-        self.n_emissions = len(emissions)  #########
-        self.emissions_dict = {}
+        #read in emissions_df and recombination frequency and initialize the transition matrix
         self.emissions_df = emission_df
-        for s in range(self.n_emissions):
-            self.emissions_dict[s] = emissions[s]
+        self.recomb_freq = recombination_freq
+        self.transitions = {0:[], 1:[], 2:[], 3:[]}
+
+        #read in the SNPseq as a list
+        self.sequence = SNPseq
+        self.alphabet = ["AA","AC","AG","AT","CA","CC","CG","CT","GA","GC","GG","GT","TA","TC","TG","TT"]
 
         #pick a random starting state (0,1,2,3) and initialize the matrices for the Viterbi algorithm
         self.current_state = rn.randint(0, self.n_states-1)
         self.optimal_matrix = np.zeros((self.n_states, len(SNPseq)))
         self.backtrack = np.zeros((self.n_states, len(SNPseq)))
 
-        ### NOTE: still discussing how to represent this information ########
-        #read in the SNPseq into a list
-        self.text = SNPseq
-        self.alphabet = emissions
+
+    def get_transition_matrix(self):
+        """
+        This function creates the transition matrix based on the recombination rate given
+        during initialization. By calculating the Hamming Distance (edit distance) between
+        populations (AA,AB,BA,BB), we can see how many ancestries are changed in each
+        transition and the use this and the recombination rate to assign a transition rate.
+        """
+        for i in range(self.n_states):
+            state1 = self.states[i]
+            for j in range(self.n_states):
+                state2 = self.states[j]
+                dist = HammingDist(state1,state2)
+                if dist == 0:
+                    self.transitions[i].append((1-self.recomb_freq)**2)
+                elif dist == 1:
+                    self.transitions[i].append(self.recomb_freq*(1-self.recomb_freq))
+                elif dist == 2:
+                    self.transitions[i].append(self.recomb_freq**2)
 
 
-    ### TO DO: test that this works with easy data!
+    #function which creates an emissions matrix for a specific SNP (based on index in SNPseq) ###(move this down)
+    ### Need to adjust use of position depending on how we do our indexing (could be row # instead) ##########
     def get_emissions_matrix(self,position):
         """
-        This function takes a SNP position (on chr 21), and uses the emission_df
+        This function takes a SNP position (on chr 21 ####), and uses the emission_df
         to output a 4x16 emission probability matrix (rows = 4 ancestry pop combos,
         cols = 16 genotype combos). The genotype combos are ordered lexicographically:
         ["AA","AC","AG","AT","CA","CC","CG","CT","GA","GC","GG","GT","TA","TC","TG","TT"].
         """
         #first grab the index of position in emission_df
-        ind = list(self.emission_df.loc[:,"POS"]).index(position) ######## might change this
+        ind = list(self.emissions_df.loc[:,"POS"]).index(position) ######## might change this
 
         #now go through the columns with pop_nt freqs and make the emissions matrix
         emissions_mat = np.zeros((4,16),dtype=float)
@@ -56,11 +85,12 @@ class HMMOptimalPathLAI:
             for j in range(len(self.alphabet)):
                 nt1 = self.alphabet[j][0]
                 nt2 = self.alphabet[j][1]
-                prob1 = self.emission_df.loc[ind,pop1+"_"+nt1]
-                prob2 = self.emission_df.loc[ind,pop2+"_"+nt2]
+                prob1 = self.emissions_df.loc[ind,pop1+"_"+nt1]
+                prob2 = self.emissions_df.loc[ind,pop2+"_"+nt2]
                 emissions_mat[i,j] = prob1*prob2
 
         return emissions_mat
+
 
     ### TO DO: update this for new DSs
     def get_optimal_path(self):
@@ -95,21 +125,3 @@ class HMMOptimalPathLAI:
         path.reverse()
         output = [state_names[p] for p in path if p != -1]
         return output
-
-
-### big changes necessary
-    # - text --> SNPseq (with SNP position info too)
-    # - can hard code alphabet to be all 2nt combos?
-    # - think more about how we want to represent state_names and state_probs
-def parse_hmm_data(data):
-    text = data[0] ###
-    alphabet = data[2].split(" ") ###
-    state_names = data[4].split(" ") ###
-    n_states = len(state_names)
-    state_probs = []
-    for i in range(7, 7+n_states):
-        state_probs.append([float(x) for x in data[i].split("\t")[1:]])
-    emit_probs = []
-    for j in range(9+n_states, 9+n_states*2):
-        emit_probs.append([float(x) for x in data[j].split("\t")[1:]])
-    return state_probs, emit_probs, text, alphabet, state_names
