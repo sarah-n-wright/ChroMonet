@@ -298,7 +298,7 @@ def admix_two_genomes_single(g1, g2, n_recomb):
 def admix_two_genomes_full(g1, g2, n_recomb, savepath, save=False):
     a1, pop1 = admix_two_genomes_single(g1, g2, n_recomb)
     a2, pop2 = admix_two_genomes_single(g1, g2, n_recomb)
-    genome_table = pd.DataFrame({"POS": data.POS.unique(), "A1": list(a1), "A2": list(a2), "POP1": pop1,
+    genome_table = pd.DataFrame({"POS": g1.POS, "A1": list(a1), "A2": list(a2), "POP1": pop1,
                                  "POP2": pop2})
     if save:
         genome_table.to_csv(savepath, index=False, sep="\t")
