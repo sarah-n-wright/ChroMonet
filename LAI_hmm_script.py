@@ -31,15 +31,22 @@ def makeSNPseq(df,col1,col2):
 
 def standardizeIndices(df1,df2,col_name):
     """
-    This function cuts down df1 to only contain values in the column, col_name that exist in
-    df2[,col_name]. It also checks that the two dataframes now have equal values in the two
-    columns. In practice, this is used to cut down an emission df to perfectly match an
-    individual's SNPs (in a genotype df) based on POS.
+    This function cuts down both df1 and df2 to only contain values in the col (col_name)
+    that exist in the intersection of both. In practice, this is used to make sure the SNP
+    POS match between an emission df and a genotype df for each creation of an HMM.
     """
+    df1_pos = list(df1.loc[:,col_name])
     df2_pos = list(df2.loc[:,col_name])
-    fin_df1 = df1[df1[col_name].isin(df2_pos)]
-    print(df2_pos == list(fin_df1.loc[:,col_name]))
-    return fin_df1
+    intersect = set(df1_pos).intersection(set(df2_pos))
+
+    fin_df1 = df1[df1[col_name].isin(intersect)]
+    fin_df1.sort_values(col_name)
+    fin_df1.reset_index(inplace=True,drop=True)
+    fin_df2 = df2[df2[col_name].isin(intersect)]
+    fin_df2.sort_values(col_name)
+    fin_df2.reset_index(inplace=True,drop=True)
+
+    return fin_df1, fin_df2
 
 
 
@@ -109,8 +116,10 @@ class HMMOptimalPathLAI:
             for j in range(len(self.alphabet)):
                 nt1 = self.alphabet[j][0]
                 nt2 = self.alphabet[j][1]
-                prob1 = self.emissions_df.loc[ind,pop1+"_"+nt1]
-                prob2 = self.emissions_df.loc[ind,pop2+"_"+nt2]
+                col1 = list(self.emissions_df.columns).index(pop1+"_"+nt1)
+                col2 = list(self.emissions_df.columns).index(pop1+"_"+nt2)
+                prob1 = self.emissions_df.iloc[ind,col1]
+                prob2 = self.emissions_df.iloc[ind,col2]
                 emissions_mat[i,j] = prob1*prob2
 
         return emissions_mat

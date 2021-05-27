@@ -284,7 +284,6 @@ def admix_two_genomes_single(g1, g2, n_recomb):
     pop2 = g2["POP"+str(select2)].to_list()
     crossovers = [rn.randint(0, len(g1)-1) for _ in range(n_recomb)]
     #crossovers = list(g1.POS[vals])
-    print(crossovers)
     crossovers.sort()
     for cross in crossovers:
         c1, c2 = crossover(c1, c2, cross)
