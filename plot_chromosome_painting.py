@@ -35,10 +35,21 @@ def convert_tsv_to_beds(filename, genome_tsv_file, output_dir, chromosome):
     
     # Write to new files
     copy1_filename = filename.split('.')[0] + '_copy1.bed'
-    copy1.to_csv(output_dir + copy1_filename, sep='\t', index=False)
-    
     copy2_filename = filename.split('.')[0] + '_copy2.bed'
+    if 'recomb' in copy1_filename:
+        copy1_filename = filename.split('.')[0] + '.' + filename.split('.')[1] + '_copy1.bed'
+        copy2_filename = filename.split('.')[0] + '.' + filename.split('.')[1] +'_copy2.bed'
+    
+    copy1.to_csv(output_dir + copy1_filename, sep='\t', index=False)
     copy2.to_csv(output_dir + copy2_filename, sep='\t', index=False) 
+    
+    # HMM output file contains recombination rate like '0.1', '0.2'
+    if 'recomb' in filename:
+        copy1_filename = filename.split('.')[0] + '.' + filename.split('.')[1] + '_copy1.bed'
+        copy1.to_csv(output_dir + copy1_filename, sep='\t', index=False)
+
+        copy2_filename = filename.split('.')[0] + '.' + filename.split('.')[1] + '_copy2.bed'
+        copy2.to_csv(output_dir + copy2_filename, sep='\t', index=False) 
     
     return(copy1_filename, copy2_filename)
 
@@ -209,7 +220,15 @@ def main():
 
     # 2. Merge the file regions for each separate chromosome copy 
     copy1_bed = merge_regions(args.output_dir + copy1_filename, args.chromosome, args.output_dir + copy1_filename.split('.')[0], 'POP1')
-    copy2_bed = merge_regions(args.output_dir + copy2_filename, args.chromosome, args.output_dir + copy2_filename.split('.')[0], 'POP2') 
+    copy2_bed = merge_regions(args.output_dir + copy2_filename, args.chromosome, args.output_dir + copy2_filename.split('.')[0], 'POP2')
+    # HMM output file contains recombination rate like '0.1', '0.2'
+    if 'recomb' in copy1_filename:
+        copy1_bed = merge_regions(args.output_dir + copy1_filename, args.chromosome, args.output_dir + copy1_filename.split('.')[0] + '.' + copy1_filename.split('.')[1], 'POP1')
+        print(copy1_bed)
+        copy2_bed = merge_regions(args.output_dir + copy2_filename, args.chromosome, args.output_dir + copy2_filename.split('.')[0] + '.' + copy2_filename.split('.')[1], 'POP2')
+        print(copy2_bed)
+
+    
 
     # 3. Format bed file for karyogram
     # Example bed line: 21      9411245 48119700        EUR
