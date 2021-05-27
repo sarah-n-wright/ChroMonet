@@ -1,7 +1,7 @@
 import random as rn
 import numpy as np
 import pandas as pd
-
+from tqdm import tqdm
 
 def HammingDist(str1,str2):
     """
@@ -22,7 +22,7 @@ def makeSNPseq(df,col1,col2):
     returns these as a list.
     """
     snps = []
-    for i in range(len(df)):
+    for i in tqdm(range(len(df)), desc="makeSNPseq"):
         snps.append(df.iloc[i,col1]+df.iloc[i,col2])
 
     return snps
@@ -31,15 +31,22 @@ def makeSNPseq(df,col1,col2):
 
 def standardizeIndices(df1,df2,col_name):
     """
-    This function cuts down df1 to only contain values in the column, col_name that exist in
-    df2[,col_name]. It also checks that the two dataframes now have equal values in the two
-    columns. In practice, this is used to cut down an emission df to perfectly match an
-    individual's SNPs (in a genotype df) based on POS.
+    This function cuts down both df1 and df2 to only contain values in the col (col_name)
+    that exist in the intersection of both. In practice, this is used to make sure the SNP
+    POS match between an emission df and a genotype df for each creation of an HMM.
     """
+    df1_pos = list(df1.loc[:,col_name])
     df2_pos = list(df2.loc[:,col_name])
-    fin_df1 = df1[df1[col_name].isin(df2_pos)]
-    print(df2_pos == list(fin_df1.loc[:,col_name]))
-    return fin_df1
+    intersect = set(df1_pos).intersection(set(df2_pos))
+
+    fin_df1 = df1[df1[col_name].isin(intersect)]
+    fin_df1.sort_values(col_name)
+    fin_df1.reset_index(inplace=True,drop=True)
+    fin_df2 = df2[df2[col_name].isin(intersect)]
+    fin_df2.sort_values(col_name)
+    fin_df2.reset_index(inplace=True,drop=True)
+
+    return fin_df1, fin_df2
 
 
 
@@ -103,14 +110,16 @@ class HMMOptimalPathLAI:
         """
         #go through the columns with pop_nt freqs and make the emissions matrix
         emissions_mat = np.zeros((4,16),dtype=float)
-        for i in range(self.n_states):
+        for i in tqdm(range(self.n_states), desc="get_emission_matrix"):
             pop1 = self.pop_codes[self.states[i][0]]
             pop2 = self.pop_codes[self.states[i][1]]
             for j in range(len(self.alphabet)):
                 nt1 = self.alphabet[j][0]
                 nt2 = self.alphabet[j][1]
-                prob1 = self.emissions_df.loc[ind,pop1+"_"+nt1]
-                prob2 = self.emissions_df.loc[ind,pop2+"_"+nt2]
+                col1 = list(self.emissions_df.columns).index(pop1+"_"+nt1)
+                col2 = list(self.emissions_df.columns).index(pop1+"_"+nt2)
+                prob1 = self.emissions_df.iloc[ind,col1]
+                prob2 = self.emissions_df.iloc[ind,col2]
                 emissions_mat[i,j] = prob1*prob2
 
         return emissions_mat
@@ -125,7 +134,7 @@ class HMMOptimalPathLAI:
         path through states, and thus the haplotypes of a chromosome.
         """
         #go through every SNP in the input sequence (i=index, c=SNP string)
-        for i, c in enumerate(self.sequence):
+        for i, c in tqdm(enumerate(self.sequence), desc="get_optimal_path"):
             #pull out the lexicographic indexing of the seen 2nt SNP (idx)
             idx = self.alphabet.index(c)
             #create the emissions matrix for this SNP with the enumerated index
@@ -169,7 +178,7 @@ class HMMOptimalPathLAI:
         previous_state = end_state
 
         #now walk backwards through the backtrack list until reaching the start
-        for i in range(len(self.sequence)-1, -1, -1):
+        for i in tqdm(range(len(self.sequence)-1, -1, -1), desc="reconstruct_path"):
             #print(previous_state, i)
             path.append(int(self.backtrack[previous_state, i]))
             previous_state = int(self.backtrack[previous_state, i])
@@ -191,7 +200,7 @@ class HMMOptimalPathLAI:
         #reconstruct the two populations from the final path using the pop_codes dict
         hap1 = []
         hap2 = []
-        for gt in self.final_path:
+        for gt in tqdm(self.final_path, desc="output_path"):
             pop1 = gt[0]
             pop2 = gt[1]
             hap1.append(self.pop_codes[pop1])
