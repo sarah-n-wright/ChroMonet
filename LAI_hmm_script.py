@@ -31,15 +31,20 @@ def makeSNPseq(df,col1,col2):
 
 def standardizeIndices(df1,df2,col_name):
     """
-    This function cuts down df1 to only contain values in the column, col_name that exist in
-    df2[,col_name]. It also checks that the two dataframes now have equal values in the two
-    columns. In practice, this is used to cut down an emission df to perfectly match an
-    individual's SNPs (in a genotype df) based on POS.
+    This function cuts down both df1 and df2 to only contain values in the col (col_name)
+    that exist in the intersection of both. In practice, this is used to make sure the SNP
+    POS match between an emission df and a genotype df for each creation of an HMM.
     """
+    df1_pos = list(df2.loc[:,col_name])
     df2_pos = list(df2.loc[:,col_name])
-    fin_df1 = df1[df1[col_name].isin(df2_pos)]
-    print(df2_pos == list(fin_df1.loc[:,col_name]))
-    return fin_df1
+    intersect = set(df1_pos).intersection(set(df2_pos))
+
+    fin_df1 = df1[df1[col_name].isin(intersect)]
+    fin_df1.sort_values(col_name)
+    fin_df2 = df2[df2[col_name].isin(intersect)]
+    fin_df2.sort_values(col_name)
+
+    return fin_df1, fin_df2
 
 
 
