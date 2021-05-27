@@ -275,18 +275,49 @@ def random_admixed_genome(ancestry_pair, data, n_recomb, sample_id="", save=Fals
     return table_to_genome(genome_table)
 
 
-def crossover(a, b, cross_pos):
+def admix_two_genomes_single(g1, g2, n_recomb):
+    select1 = rn.randint(1, 2)
+    select2 = rn.randint(1, 2)
+    c1 = g1["A"+str(select1)].to_list()
+    pop1 = g1["POP"+str(select1)].to_list()
+    c2 = g2["A"+str(select2)].to_list()
+    pop2 = g2["POP"+str(select2)].to_list()
+    crossovers = [rn.randint(0, len(g1)-1) for _ in range(n_recomb)]
+    #crossovers = list(g1.POS[vals])
+    crossovers.sort()
+    for cross in crossovers:
+        c1, c2 = crossover(c1, c2, cross)
+        pop1, pop2 = crossover(pop1, pop2, cross)
+    chroms = [c1, c2]
+    pops = [pop1, pop2]
+    # randomly select a chromosome
+    choice = rn.randint(0, 1)
+    return chroms[choice], pops[choice]
+
+
+def admix_two_genomes_full(g1, g2, n_recomb, savepath, save=False):
+    a1, pop1 = admix_two_genomes_single(g1, g2, n_recomb)
+    a2, pop2 = admix_two_genomes_single(g1, g2, n_recomb)
+    genome_table = pd.DataFrame({"POS": g1.POS, "A1": list(a1), "A2": list(a2), "POP1": pop1,
+                                 "POP2": pop2})
+    if save:
+        genome_table.to_csv(savepath, index=False, sep="\t")
+    return genome_table
+
+
+
+def crossover(aa, bb, cross_pos):
     """
     Performs a suffix exchange between two objects of equal length of the suffix from index cross_pos to end
-    :param a: List or string to be crossed
-    :param b: List or string to be crossed
+    :param aa: List or string to be crossed
+    :param bb: List or string to be crossed
     :param cross_pos: Position at which to perform crossover
     :return: both chromosomes following crossover
     """
-    a_pref = a[:cross_pos]
-    a_suff = a[cross_pos:]
-    b_pref = b[:cross_pos]
-    b_suff = b[cross_pos:]
+    a_pref = aa[:cross_pos]
+    a_suff = aa[cross_pos:]
+    b_pref = bb[:cross_pos]
+    b_suff = bb[cross_pos:]
     a_out = a_pref + b_suff
     b_out = b_pref + a_suff
     return a_out, b_out
@@ -295,6 +326,10 @@ def crossover(a, b, cross_pos):
 if __name__ == "__main__":
     # data = make_fake_frequencies(["0", "1"], 10, 520, save=False)
     data = load_fake_frequencies(2, 100, 518)
+    a = pd.read_csv("Data/simGenome_100_0_0.tsv", sep="\t", index_col=False)
+    b = pd.read_csv("Data/simGenome_100_1_1.tsv", sep="\t", index_col=False)
+    x = admix_two_genomes_full(a, b, 1, "")
+
     x = random_admixed_genome(["0", "1"], data, 1, sample_id="0", save=True)
     x = random_admixed_genome(["0", "1"], data, 1, sample_id="1", save=True)
     x = random_admixed_genome(["0", "1"], data, 2, sample_id="0", save=True)
