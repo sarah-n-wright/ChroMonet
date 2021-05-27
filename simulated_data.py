@@ -282,8 +282,9 @@ def admix_two_genomes_single(g1, g2, n_recomb):
     pop1 = g1["POP"+str(select1)].to_list()
     c2 = g2["A"+str(select2)].to_list()
     pop2 = g2["POP"+str(select2)].to_list()
-    vals = [rn.randint(0, len(g1)-1) for _ in range(n_recomb)]
-    crossovers = list(g1.POS[vals])
+    crossovers = [rn.randint(0, len(g1)-1) for _ in range(n_recomb)]
+    #crossovers = list(g1.POS[vals])
+    print(crossovers)
     crossovers.sort()
     for cross in crossovers:
         c1, c2 = crossover(c1, c2, cross)
@@ -321,6 +322,19 @@ def crossover(aa, bb, cross_pos):
     a_out = a_pref + b_suff
     b_out = b_pref + a_suff
     return a_out, b_out
+
+
+def accuracy(predict_geno, truth_geno):
+    n_pos = len(predict_geno)
+    p1 = predict_geno.POP1.to_numpy()
+    p2 = predict_geno.POP2.to_numpy()
+    t1 = truth_geno.POP1.to_numpy()
+    t2 = truth_geno.POP2.to_numpy()
+    correct1 = sum(p1 == t1)
+    correct2 = sum(p2 == t2)
+    accuracy = (correct1 + correct2) / (2 * n_pos)
+    return accuracy
+
 
 
 if __name__ == "__main__":
