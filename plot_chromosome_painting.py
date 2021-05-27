@@ -21,8 +21,9 @@ def convert_tsv_to_beds(filename, genome_tsv_file, output_dir, chromosome):
     """
     df = pd.read_csv(genome_tsv_file, sep=('\t'))
     
-    # Insert chromosome column
-    df.insert(0,'CHR', chromosome)
+    if 'CHR' not in df.columns.tolist():
+        # Insert chromosome column
+        df.insert(0,'CHR', chromosome)
     
     # Insert stop position for bed file
     df.insert(2,'STOP_POS',df['POS'] + 1)
