@@ -1,7 +1,7 @@
 import random as rn
 import numpy as np
 import pandas as pd
-
+from tqdm import tqdm
 
 def HammingDist(str1,str2):
     """
@@ -22,7 +22,7 @@ def makeSNPseq(df,col1,col2):
     returns these as a list.
     """
     snps = []
-    for i in range(len(df)):
+    for i in tqdm(range(len(df)), desc="makeSNPseq"):
         snps.append(df.iloc[i,col1]+df.iloc[i,col2])
 
     return snps
@@ -110,7 +110,7 @@ class HMMOptimalPathLAI:
         """
         #go through the columns with pop_nt freqs and make the emissions matrix
         emissions_mat = np.zeros((4,16),dtype=float)
-        for i in range(self.n_states):
+        for i in tqdm(range(self.n_states), desc="get_emission_matrix"):
             pop1 = self.pop_codes[self.states[i][0]]
             pop2 = self.pop_codes[self.states[i][1]]
             for j in range(len(self.alphabet)):
@@ -134,7 +134,7 @@ class HMMOptimalPathLAI:
         path through states, and thus the haplotypes of a chromosome.
         """
         #go through every SNP in the input sequence (i=index, c=SNP string)
-        for i, c in enumerate(self.sequence):
+        for i, c in tqdm(enumerate(self.sequence), desc="get_optimal_path"):
             #pull out the lexicographic indexing of the seen 2nt SNP (idx)
             idx = self.alphabet.index(c)
             #create the emissions matrix for this SNP with the enumerated index
@@ -178,7 +178,7 @@ class HMMOptimalPathLAI:
         previous_state = end_state
 
         #now walk backwards through the backtrack list until reaching the start
-        for i in range(len(self.sequence)-1, -1, -1):
+        for i in tqdm(range(len(self.sequence)-1, -1, -1), desc="reconstruct_path"):
             #print(previous_state, i)
             path.append(int(self.backtrack[previous_state, i]))
             previous_state = int(self.backtrack[previous_state, i])
@@ -200,7 +200,7 @@ class HMMOptimalPathLAI:
         #reconstruct the two populations from the final path using the pop_codes dict
         hap1 = []
         hap2 = []
-        for gt in self.final_path:
+        for gt in tqdm(self.final_path, desc="output_path"):
             pop1 = gt[0]
             pop2 = gt[1]
             hap1.append(self.pop_codes[pop1])
