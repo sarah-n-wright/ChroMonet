@@ -116,7 +116,7 @@ def hex_to_rgb(value):
     lv = len(value)
     return tuple(int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
 
-def PlotKaryogram(bed_a, bed_b, ind, pop_order, outprefix):
+def PlotKaryogram(bed_a, bed_b, ind, pop_order, outprefix, xaxis_length, yaxis_range):
     """ Plot admixture karyogram
     
     Parameters
@@ -141,14 +141,14 @@ def PlotKaryogram(bed_a, bed_b, ind, pop_order, outprefix):
     ax = fig.add_subplot(111)
     #ax.set_xlim(-5,300)
     #ax.set_ylim(23,0)
-    ax.set_xlim(-5,65) # Lauryn Changed
-    ax.set_ylim(21,22) # Lauryn Changed
+    ax.set_xlim(-5, xaxis_length) # Lauryn Changed
+    ax.set_ylim(yaxis_range[0], yaxis_range[1]) # Lauryn Changed
     #plt.xlabel('Genetic position (cM)')
     
-    plt.xlabel('Genetic position') # Lauryn Changed
+    plt.xlabel('Genetic position (cM)') # Lauryn Changed
     plt.ylabel('Chromosome') 
     plt.title(ind)
-    plt.yticks(range(20, 22)) # Lauryn Changed
+    plt.yticks(range(yaxis_range[0], yaxis_range[1])) # Lauryn Changed
     
     ax.get_yaxis().set_visible(False) # Lauryn Added
     # TODO: Hide yaxis line?
