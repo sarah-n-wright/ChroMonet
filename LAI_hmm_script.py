@@ -110,7 +110,7 @@ class HMMOptimalPathLAI:
         """
         #go through the columns with pop_nt freqs and make the emissions matrix
         emissions_mat = np.zeros((4,16),dtype=float)
-        for i in tqdm(range(self.n_states), desc="get_emission_matrix"):
+        for i in range(self.n_states):
             pop1 = self.pop_codes[self.states[i][0]]
             pop2 = self.pop_codes[self.states[i][1]]
             for j in range(len(self.alphabet)):
