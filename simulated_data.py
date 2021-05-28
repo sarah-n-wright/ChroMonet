@@ -323,19 +323,6 @@ def crossover(aa, bb, cross_pos):
     return a_out, b_out
 
 
-def accuracy(predict_geno, truth_geno):
-    n_pos = len(predict_geno)
-    p1 = predict_geno.POP1.to_numpy()
-    p2 = predict_geno.POP2.to_numpy()
-    t1 = truth_geno.POP1.to_numpy()
-    t2 = truth_geno.POP2.to_numpy()
-    correct1 = sum(p1 == t1)
-    correct2 = sum(p2 == t2)
-    accuracy = (correct1 + correct2) / (2 * n_pos)
-    return accuracy
-
-
-
 if __name__ == "__main__":
     # data = make_fake_frequencies(["0", "1"], 10, 520, save=False)
     data = load_fake_frequencies(2, 100, 518)
