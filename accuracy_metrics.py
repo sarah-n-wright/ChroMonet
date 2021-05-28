@@ -10,10 +10,10 @@ def accuracy(predict_geno, truth_geno):
     :return: Percent of positions correct across all positions in both chromosomes
     """
     n_pos = len(predict_geno)
-    p1 = predict_geno.POP1.to_numpy()
-    p2 = predict_geno.POP2.to_numpy()
-    t1 = truth_geno.POP1.to_numpy()
-    t2 = truth_geno.POP2.to_numpy()
+    p1 = predict_geno.POP1.astype(str).to_numpy()
+    p2 = predict_geno.POP2.astype(str).to_numpy()
+    t1 = truth_geno.POP1.astype(str).to_numpy()
+    t2 = truth_geno.POP2.astype(str).to_numpy()
     #print(type(t2))
     correct1 = np.equal(p1, t1).sum()
     correct2 = np.equal(p2, t2).sum()
@@ -30,10 +30,10 @@ def pivot_accuracy(predict_geno, truth_geno):
             2. skew: ratio of predicted pivots compared to expected number of pivots
     """
     n_pos = len(predict_geno)
-    p1 = predict_geno.POP1.to_numpy()
-    p2 = predict_geno.POP2.to_numpy()
-    t1 = truth_geno.POP1.to_numpy()
-    t2 = truth_geno.POP2.to_numpy()
+    p1 = predict_geno.POP1.astype(str).to_numpy()
+    p2 = predict_geno.POP2.astype(str).to_numpy()
+    t1 = truth_geno.POP1.astype(str).to_numpy()
+    t2 = truth_geno.POP2.astype(str).to_numpy()
     pivots1 = find_pivots(np.equal(p1, t1))
     pivots2 = find_pivots(np.equal(p2, t2))
     # TODO some way to scale the number of correct pivots?
@@ -41,8 +41,8 @@ def pivot_accuracy(predict_geno, truth_geno):
     # Should it be compared to truth or predicted? Percent wrong OR
     # number wrong vs expected number?
     # Should it matter how close it is to the actual point? Nah that's what accuracy is for?
-    total1 = find_pivots(np.equal(p1, p1[0])) + 1 * (p1[0] == t1[0])
-    total2 = find_pivots(np.equal(p2, p2[0])) + 1 * (p2[0] == t2[0])
+    total1 = find_pivots(np.equal(p1, p1[0])) + 1 * (p1[0] != t1[0])
+    total2 = find_pivots(np.equal(p2, p2[0])) + 1 * (p2[0] != t2[0])
     # Get total percent of correct switches in the predicted genome
     if total1 + total2 == 0:
         percent_correct = 1

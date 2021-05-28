@@ -117,7 +117,7 @@ class HMMOptimalPathLAI:
                 nt1 = self.alphabet[j][0]
                 nt2 = self.alphabet[j][1]
                 col1 = list(self.emissions_df.columns).index(pop1+"_"+nt1)
-                col2 = list(self.emissions_df.columns).index(pop1+"_"+nt2)
+                col2 = list(self.emissions_df.columns).index(pop2+"_"+nt2)
                 prob1 = self.emissions_df.iloc[ind,col1]
                 prob2 = self.emissions_df.iloc[ind,col2]
                 emissions_mat[i,j] = prob1*prob2
