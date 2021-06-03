@@ -2,6 +2,7 @@ import random as rn
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+import math
 
 def HammingDist(str1,str2):
     """
@@ -148,7 +149,7 @@ class HMMOptimalPathLAI:
                 #if this is the first SNP, then just set all positions in the matrix to the emissions prob
                 #(this assumes equal prob of start in any state, which is fine here)
                 if i == 0:
-                    self.optimal_matrix[j, i] =  emit_prob
+                    self.optimal_matrix[j, i] =  math.log10(emit_prob)
                     self.backtrack[j, i] = -1
 
                 #otherwise go through all possible previous states and keep track of transition
@@ -157,7 +158,7 @@ class HMMOptimalPathLAI:
                     probs = []
                     for previous in range(self.n_states):
                         transition_prob = self.transitions[previous][j]
-                        probs.append(emit_prob * transition_prob * self.optimal_matrix[previous, i-1])
+                        probs.append(math.log10(emit_prob * transition_prob) + self.optimal_matrix[previous, i-1])
                     #select the max probability and record backtrack
                     max_prob = max(probs)
                     back = probs.index(max_prob)
