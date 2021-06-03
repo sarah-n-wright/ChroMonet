@@ -91,7 +91,8 @@ def merge_regions(bed_file, chrom, output_prefix, pop_header):
             else:
                 # Write previous pop range to merged bed file
                 if pop_range != []:
-                    output_line = [str(chrom), str(pop_range[0]), str(pop_range[-1] + 1), str(pop_map[pop])]
+                    #output_line = [str(chrom), str(pop_range[0]), str(pop_range[-1] + 1), str(pop_map[pop])]
+                    output_line = [str(chrom), str(pop_range[0]), str(int(row['START_POS']) - 1), str(pop_map[pop])]
                     out.write('\t'.join(output_line) + '\n')
 
                 # Start new range and switch pop
@@ -121,7 +122,8 @@ def merge_regions(bed_file, chrom, output_prefix, pop_header):
             else:
                 # Write previous pop range to merged bed file
                 if pop_range != []:
-                    output_line = [str(chrom), str(pop_range[0]), str(pop_range[-1] + 1), str(pop_map[pop])]
+                    #output_line = [str(chrom), str(pop_range[0]), str(pop_range[-1] + 1), str(pop_map[pop])]
+                    output_line = [str(chrom), str(pop_range[0]), str(int(row['START_POS']) - 1), str(pop_map[pop])]
                     out.write('\t'.join(output_line) + '\n')
                 
                 # Start new range and switch pop
