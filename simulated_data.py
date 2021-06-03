@@ -3,6 +3,7 @@ import pandas as pd
 from os import path
 import re as re
 import numpy as np
+from tqdm import tqdm
 
 # TODO make it possible to save simulated data outside of Git
 
@@ -26,7 +27,7 @@ def make_fake_frequencies(ancestries, positions, seed=0, save=False):
         positions = range(positions)
     nts = ['A', 'G', 'C', 'T']
     data = pd.DataFrame({"POS": [], "POP": [], "A": [], "C": [], "G": [], "T": []})
-    for pos in positions:
+    for pos in tqdm(positions):
         alleles = rn.sample(nts, 2)  # randomly select the two alleles
         zero_alleles = [x for x in nts if x not in alleles]
         for pop in ancestries:
