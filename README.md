@@ -1,39 +1,61 @@
-# cse284_project
-cse284 Project, Spring 2021
+# ChroMonet : An HHM-based tool for local ancestry inference and chromosome painting
+Final class project for UCSD's CSE284 Personal Genomics, Spring 2021
+Authored by: Lauryn Bruce, Hannah Mummey & Sarah Wright
 
-## Set up  
-From your command line in the folder you want to put the repository:  
-`git clone https://github.com/sarah-n-wright/cse284_project.git`
+## Overview & Key Functionalities
 
-If you don't want to enter your password every time see: https://docs.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh to set up ssh key.  
 
-## quick git commands workflow  
-`git pull` # pull the latest updates from github  
-`git branch <branch name>` # create a new branch  
-`git checkout <branch name>` # go to branch <branch name>
-`git merge origin/master` # to update your branch to look like main (LB)
- 
-#### Make your changes on your branch, then:  
-`git add <filename>`  # add file to list of files to commit changes  
-`git commit -m <description>` # commit all changes to files (that have been been added)  
-#### Optional:  
-`git push origin <mybranch>`  # make your branch available without merging to main
-#### Go back to main `git checkout main` , then: 
-`git pull` # pull the latest updates from github in case there have been updates while you worked    
-`git merge main <mybranch>` # Merge changes from main to <mybranch>. If this produces conflicts you will get an error message which will need to be fixed.
- 
-`git merge <mybranch> main` # Merge changes from <mybranch> to main
-  
-`git push origin main` # push the latest updates from your local main branch to github    
-  
-## Other useful things:
-`git status` # check the status of repository  
-`git log` # print a log of recent commits  
-`git branch` # show all available branches  
 
-## Pushing other branches  
+## Data used to develop and test ChroMonet
 
-It can also be useful to push your personal branches:  
-`git push origin <mybranch>` as this will make your changes available to everyone, even if they are not ready for merging into main.  
-To pull a different branch use:  
-`git pull <otherbranch>`
+### Simulated data
+
+* `simulated_data.py` contains methods to generate simulated allele frequencies for a specified number of positions and produce synthetic genomes from these simulated datasets, and perform admixture between genomes. In all functions, the individual positions are considered independent, as are the two chromosomes within a genome. 
+
+### 1000 Genomes Data
+
+* `parse_genotype_mafs.py`
+
+### Data Availability
+
+`Data/` contains example simulated datasets for N=100 positions.   
+
+Larger simulated datasets and 1000 Genomes data used in this project can be found on the class JupyterHub in Team3 directory under `simulated_files` and `chromosome_21_files`/`chromosome_14_files` respectively. Alternatively, simulated datasets can be generated as described below, and 1000 Genomes data can be download from [The 1000 Genomes Project](https://www.internationalgenome.org/).
+
+
+## HMM implementation and evaluation
+
+* `LAI_hmm_script.py`
+* `run_LAI_hmm.py`
+
+### Evaluation
+* `accuracy_metrics.py` contains methods for evaluating the predicted results from and HMM by comparing the results to corresponding truth sets. Wrapper function `compare_genome_files()` takes file paths to the predicted and truth genotypes and outputs:
+  * Positional accuracy: Proportion of all alleles assigned the correct ancestry.
+  * Skew: The ratio of number predicted recombinations events to the true number of recombination events.   
+
+### Results Visualization
+
+* `plot_karyogram_LB.py`
+* `plot_chromosome_painting.py`
+
+## Interactive Notebooks
+* `Simulated Data Examples.ipynb`
+* `Create Chromosome Paintings.ipynb` 
+* `generate_1000G_afr_eur_input_files.ipynb`
+
+
+## File naming conventions
+
+### Simualted data files
+All simulated data files start with the prefix `sim`.   
+* Simulated allele frequencies: `simData_N[number of populations]_P[number of positions]_seed[random seed].tsv`. E.g. the file `simData_N2_P100_seed518.tsv` is a two population data set with 100 positions, generated with random seed=518.
+* Simulated genomes: `simGenome_[number of positions]_[pop1]_[pop2].tsv`. E.g. `simGenome_100_1_0.tsv` is a 100 position genome with one chromosome from population 1, and one chromsome from population 0.
+* Simulated admixed genomes: `simAdmixedGenome_[number of positions]_[pop1]_[pop2]_Rx[number of recombinations]_[repeat].tsv` e.g. `simAdmixedGenome_100_0_1_Rx4_1.tsv` specifies the first repeat of admixture 
+
+### Admixed genomes
+
+### HMM output files
+
+### Results visualization
+
+
