@@ -137,7 +137,7 @@ def PlotKaryogram(bed_a, bed_b, ind, pop_order, outprefix, xaxis_length, yaxis_r
 
     # define plotting space
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(8,6))
     ax = fig.add_subplot(111)
     #ax.set_xlim(-5,300)
     #ax.set_ylim(23,0)
@@ -145,10 +145,11 @@ def PlotKaryogram(bed_a, bed_b, ind, pop_order, outprefix, xaxis_length, yaxis_r
     ax.set_ylim(yaxis_range[0], yaxis_range[1]) # Lauryn Changed
     #plt.xlabel('Genetic position (cM)')
     
-    plt.xlabel('Genetic position (cM)') # Lauryn Changed
-    plt.ylabel('Chromosome') 
-    plt.title(ind)
+    plt.xlabel('Genetic position (cM)', fontsize=16) # Lauryn Changed
+    plt.ylabel('Chromosome', fontsize=16) 
+    plt.title(ind, fontsize=16)
     plt.yticks(range(yaxis_range[0], yaxis_range[1])) # Lauryn Changed
+    plt.xticks(fontsize=20)
     
     ax.get_yaxis().set_visible(False) # Lauryn Added
     # TODO: Hide yaxis line?
@@ -180,7 +181,7 @@ def PlotKaryogram(bed_a, bed_b, ind, pop_order, outprefix, xaxis_length, yaxis_r
     p.append(plt.Rectangle((0, 0), 1, 1, color='k'))
     labs = list(pop_order)
     labs.append('UNK')
-    leg = ax.legend(p, labs, loc=4, fancybox=True)
+    leg = ax.legend(p, labs, loc=4, fancybox=True, prop={"size": 20})
     leg.get_frame().set_alpha(0)
 
     # Get rid of annoying plot features
