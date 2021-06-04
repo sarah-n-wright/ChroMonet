@@ -27,11 +27,11 @@ Larger simulated datasets and 1000 Genomes data used in this project can be foun
 ## HMM implementation and evaluation
 
 ### Implementation
-* `LAI_hmm_script.py` All methods for implementing local ancsetry HMM and solving for optimal path. 
+* `LAI_hmm_script.py` All methods for implementing local ancestry HMM and solving for optimal path. 
 * `run_LAI_hmm.py` Example script based implementation of HMM.
 
 ### Evaluation
-`accuracy_metrics.py` contains methods for evaluating the predicted results from and HMM by comparing the results to corresponding truth sets. Wrapper function `compare_genome_files()` takes file paths to the predicted and truth genotypes and outputs:
+`accuracy_metrics.py` contains methods for evaluating the predicted results from the HMM by comparing the results to corresponding truth sets. Wrapper function `accuracy_metrics.compare_genome_files()` takes file paths to the predicted and truth genotypes and outputs:
   * Positional accuracy: Proportion of all alleles assigned the correct ancestry.
   * Skew: The ratio of number predicted recombinations events to the true number of recombination events.   
 
